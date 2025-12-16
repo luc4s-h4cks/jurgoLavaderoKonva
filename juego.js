@@ -34,39 +34,92 @@ stage.add(layerZonas);
 stage.add(layerObjetos);
 
 // ======================
+// Imágenes
+// ======================
+const imgCoche = new Image();
+const imgJabon = new Image();
+const imgPistola = new Image();
+const imgEsponja = new Image();
+const imgMancha = new Image();
+const imgBurbuja = new Image();
+const imgAgua = new Image();
+
+imgCoche.src = "assets/coche.png";
+imgJabon.src = "assets/jabon.png";
+imgPistola.src = "assets/pistolaAgua.png";
+imgEsponja.src = "assets/esponja.png";
+imgMancha.src = "assets/mancha.png";
+imgBurbuja.src = "assets/burbuja.png";
+imgAgua.src = "assets/gotasAgua.png";
+
+// ======================
+// Variables
+// ======================
+let coche;
+let jabon;
+let pistolaAgua;
+let esponja;
+
+// ======================
 // Función actualizar etapa
 // ======================
 function actualizarEtapa() {
-  if (jabon) {
-    jabon.draggable(etapa === 1);
-    jabon.opacity(etapa === 1 ? 1 : 0.4);
-  }
-  if (pistolaAgua) {
-    pistolaAgua.draggable(etapa === 2);
-    pistolaAgua.opacity(etapa === 2 ? 1 : 0.4);
-  }
-  if (esponja) {
-    esponja.draggable(etapa === 3);
-    esponja.opacity(etapa === 3 ? 1 : 0.4);
-  }
+  if (jabon) jabon.opacity(1);
+  if (pistolaAgua) pistolaAgua.opacity(1);
+  if (esponja) esponja.opacity(1);
 
   layerObjetos.batchDraw();
-  console.log("Etapa:", etapa);
+}
+
+// ======================
+// Función para crear manchas
+// ======================
+function crearMancha(zona) {
+  if (!imgMancha.complete) return;
+
+  const size = 60;
+
+  const mancha = new Konva.Image({
+    image: imgMancha,
+    x: zona.x() + (zona.width() - size) / 2,
+    y: zona.y() + (zona.height() - size) / 2,
+    width: size,
+    height: size,
+    opacity: 1,
+    rotation: Math.random() * 360,
+    listening: false,
+  });
+
+  zona.mancha = mancha;
+  zona.estado = 1;
+  zona.frotado = 0;
+  zona.frotadoMax = 400;
+
+  layerZonas.add(mancha);
+  mancha.moveToTop();
+  layerZonas.batchDraw();
 }
 
 // ======================
 // Función para crear la espuma
 // ======================
 function crearEspumaZona(zona) {
-  const cantidad = 4 + Math.floor(Math.random() * 5); // 4–8 burbujas
+  if (!imgBurbuja.complete) return;
+
+  const cantidad = 6 + Math.floor(Math.random() * 6);
 
   for (let i = 0; i < cantidad; i++) {
-    const burbuja = new Konva.Circle({
-      x: zona.x() + Math.random() * zona.width(),
-      y: zona.y() + Math.random() * zona.height(),
-      radius: 6 + Math.random() * 10,
-      fill: "white",
-      opacity: 0.6 + Math.random() * 0.3,
+    const size = 30 + Math.random() * 35;
+
+    const burbuja = new Konva.Image({
+      image: imgBurbuja,
+      x: zona.x() + Math.random() * (zona.width() - size),
+      y: zona.y() + Math.random() * (zona.height() - size),
+      width: size,
+      height: size,
+      opacity: 0.8,
+      rotation: Math.random() * 360,
+      listening: false,
     });
 
     zona.espumas.push(burbuja);
@@ -78,22 +131,27 @@ function crearEspumaZona(zona) {
 // Función para crear las gotas de agua
 // ======================
 function crearGotasZona(zona) {
+  if (!imgAgua.complete) return;
+
   const cantidad = 3 + Math.floor(Math.random() * 4); // 3–6 gotas
 
   for (let i = 0; i < cantidad; i++) {
-    const gota = new Konva.Circle({
-      x: zona.x() + Math.random() * zona.width(),
-      y: zona.y() + Math.random() * zona.height(),
-      radius: 4 + Math.random() * 6,
-      fill: "#9dd9ff",
-      opacity: 0.5,
+    const size = 30 + Math.random() * 60;
+
+    const gota = new Konva.Image({
+      image: imgAgua,
+      x: zona.x() + Math.random() * (zona.width() - size),
+      y: zona.y() + Math.random() * (zona.height() - size),
+      width: size,
+      height: size,
+      opacity: 0.8,
+      listening: false,
     });
 
     zona.gotas.push(gota);
     layerZonas.add(gota);
   }
 }
-
 
 // ======================
 // Función volver a su sitio
@@ -129,9 +187,8 @@ function volverPosicionIni(objeto, pos) {
   });
 }
 
-
 // ======================
-// Área clicable completa
+// Area clicable completa
 // ======================
 function hitRectCompleto(ctx, shape) {
   ctx.beginPath();
@@ -139,27 +196,6 @@ function hitRectCompleto(ctx, shape) {
   ctx.closePath();
   ctx.fillStrokeShape(shape);
 }
-
-// ======================
-// Imágenes
-// ======================
-const imgCoche = new Image();
-const imgJabon = new Image();
-const imgPistola = new Image();
-const imgEsponja = new Image();
-
-imgCoche.src = "assets/coche.png";
-imgJabon.src = "assets/jabon.png";
-imgPistola.src = "assets/pistolaAgua.png";
-imgEsponja.src = "assets/esponja.png";
-
-// ======================
-// Variables
-// ======================
-let coche;
-let jabon;
-let pistolaAgua;
-let esponja;
 
 // ======================
 // Zonas del coche
@@ -205,9 +241,12 @@ function crearZonasCoche() {
         opacity: 0,
       });
 
-      zona.estado = 0; // 0 sucio | 1 enjabonado | 2 aclarado | 3 seco
+      zona.estado = 0; 
+      zona.mancha = null;
       zona.espumas = [];
       zona.gotas = [];
+      zona.aguaTiempo = 0;
+      zona.aguaNesesaria = 60;
 
       zonas.push(zona);
       layerZonas.add(zona);
@@ -232,74 +271,56 @@ function colision(a, b) {
   );
 }
 
-
 // ======================
 // Procesar acción según etapa
 // ======================
 function procesarAccion(objeto) {
   // ETAPA 1 – JABÓN
-  if (etapa === 1 && objeto === jabon) {
-    zonas.forEach(z => {
+  if (objeto === jabon) {
+    zonas.forEach((z) => {
+      if (z.estado === 1 && colision(jabon, z)) {
+        z.frotado++;
 
-      if (z.estado === 0 && colision(jabon, z)) {
-        z.estado = 1;
-        crearEspumaZona(z);
+        const progreso = z.frotado / z.frotadoMax;
+
+        const nuevoSize = 60 * (1 - progreso * 0.6);
+        z.mancha.width(nuevoSize);
+        z.mancha.height(nuevoSize);
+
+        z.mancha.x(z.x() + (z.width() - nuevoSize) / 2);
+        z.mancha.y(z.y() + (z.height() - nuevoSize) / 2);
+
+        z.mancha.opacity(1 - progreso);
+
+        if (z.frotado >= z.frotadoMax) {
+          z.mancha.destroy();
+          z.mancha = null;
+          z.estado = 2;
+          crearEspumaZona(z);
+        }
       }
-
     });
 
     layerZonas.batchDraw();
-
-    if (zonas.every(z => z.estado === 1)) {
-      etapa = 2;
-      actualizarEtapa();
-      console.log("🧼 Todo enjabonado");
-    }
   }
 
-
-
-
   // ETAPA 2 – AGUA
-  if (etapa === 2 && objeto === pistolaAgua) {
-    zonas.forEach(z => {
-      if (z.estado === 1 && colision(pistolaAgua, z)) {
-        z.estado = 2;
+  if (objeto === pistolaAgua) {
 
-        // Eliminar TODAS las burbujas de la zona
-        z.espumas.forEach(burbuja => burbuja.destroy());
-        z.espumas = [];
-
-        crearGotasZona(z);
-      }
-    });
-
-    layerZonas.batchDraw();
-
-    // ¿Todo aclarado?
-    if (zonas.every(z => z.estado === 2)) {
-      etapa = 3;
-      actualizarEtapa();
-      console.log("🚿 Todo aclarado");
-    }
   }
 
   // ETAPA 3 – SECAR
-  if (etapa === 3 && objeto === esponja) {
-    zonas.forEach(z => {
-      if (z.estado === 2 && colision(esponja, z)) {
-        z.estado = 3;
+  if (objeto === esponja) {
+    zonas.forEach((z) => {
+      if (z.estado === 3 && colision(esponja, z)) {
+        z.estado = 0;
 
-        z.gotas.forEach(g => g.destroy());
+        z.gotas.forEach((g) => g.destroy());
         z.gotas = [];
       }
     });
 
     layerZonas.batchDraw();
-
-    if (zonas.every(z => z.estado === 3)) {
-      console.log("✨ COCHE LIMPIO ✨");
-    }
   }
 }
 
@@ -362,3 +383,60 @@ imgEsponja.onload = () => {
   actualizarEtapa();
   layerObjetos.draw();
 };
+
+// ======================
+// Creacion de las manchas al pasar el tiempo
+// ======================
+setInterval(() => {
+  const zonasLimpias = zonas.filter((z) => z.estado === 0);
+
+  if (zonasLimpias.length === 0) return;
+
+  const zonaRandom =
+    zonasLimpias[Math.floor(Math.random() * zonasLimpias.length)];
+
+  crearMancha(zonaRandom);
+}, 3000);
+
+setInterval(() => {
+  if (!pistolaAgua) return;
+
+  zonas.forEach((z) => {
+    if (z.estado === 2) {
+      if (colision(pistolaAgua, z)) {
+        z.aguaTiempo++;
+      } else {
+        z.aguaTiempo = 0;
+      }
+    }
+
+    const progreso = z.aguaTiempo / z.aguaNesesaria;
+    z.espumas.forEach((b) => b.opacity(0.8 * (1 - progreso)));
+
+    if (!z.progresoBar) {
+      z.progresoBar = new Konva.Rect({
+        x: z.x(),
+        y: z.y() - 5,
+        width: z.width() * progreso,
+        height: 4,
+        fill: "blue",
+        listening: false,
+      });
+      layerZonas.add(z.progresoBar);
+    } else {
+      z.progresoBar.width(z.width() * progreso);
+    }
+
+    if (progreso >= 1) {
+      z.espumas.forEach((b) => b.destroy());
+      z.espumas = [];
+      if (z.progresoBar) z.progresoBar.destroy();
+      z.progresoBar = null;
+      z.estado = 3;
+      z.aguaTiempo = 0;
+      crearGotasZona(z);
+    }
+  });
+
+  layerZonas.batchDraw();
+}, 30);
