@@ -1,3 +1,7 @@
+let canvasMask;
+let ctxMask;
+
+
 // ======================
 // Crear stage
 // ======================
@@ -93,12 +97,39 @@ function crearMancha(zona) {
   zona.mancha = mancha;
   zona.estado = 1;
   zona.frotado = 0;
-  zona.frotadoMax = 400;
+  zona.frotadoMax = 200;
 
   layerZonas.add(mancha);
   mancha.moveToTop();
   layerZonas.batchDraw();
 }
+
+function puntoSobreCoche(xStage, yStage) {
+  if (!ctxMask) return false;
+
+  // Convertir coordenadas del stage a coordenadas de imagen
+  const xImg = Math.floor(
+    ((xStage - coche.x()) / coche.width()) * imgCoche.width
+  );
+  const yImg = Math.floor(
+    ((yStage - coche.y()) / coche.height()) * imgCoche.height
+  );
+
+  // Fuera de la imagen
+  if (
+    xImg < 0 ||
+    yImg < 0 ||
+    xImg >= imgCoche.width ||
+    yImg >= imgCoche.height
+  ) {
+    return false;
+  }
+
+  const pixel = ctxMask.getImageData(xImg, yImg, 1, 1).data;
+
+  return pixel[3] > 20; // alpha > 0
+}
+
 
 // ======================
 // Función para crear la espuma
@@ -215,6 +246,14 @@ imgCoche.onload = () => {
     listening: false,
   });
 
+  canvasMask = document.createElement("canvas");
+  canvasMask.width = imgCoche.width;
+  canvasMask.height = imgCoche.height;
+
+  ctxMask = canvasMask.getContext("2d");
+  ctxMask.drawImage(imgCoche, 0, 0);
+
+
   layerCoche.add(coche);
   layerCoche.draw();
 
@@ -231,17 +270,26 @@ function crearZonasCoche() {
   const w = coche.width() / columnas;
   const h = coche.height() / filas;
 
-  for (let f = 0; f < filas; f++) {
-    for (let c = 0; c < columnas; c++) {
+  for (let i = 0; i < filas; i++) {
+    for (let j = 0; j < columnas; j++) {
+
+      const x = coche.x() + j * w;
+      const y = coche.y() + i * w;
+
+      const centroX = x + w / 2;
+      const centroY = y + h / 2;
+
+      if (!puntoSobreCoche(centroX, centroY)) continue;
+
       const zona = new Konva.Rect({
-        x: coche.x() + c * w,
-        y: coche.y() + f * h,
+        x: coche.x() + j * w,
+        y: coche.y() + i * h,
         width: w,
         height: h,
         opacity: 0,
       });
 
-      zona.estado = 0; 
+      zona.estado = 0;
       zona.mancha = null;
       zona.espumas = [];
       zona.gotas = [];
@@ -313,10 +361,26 @@ function procesarAccion(objeto) {
   if (objeto === esponja) {
     zonas.forEach((z) => {
       if (z.estado === 3 && colision(esponja, z)) {
-        z.estado = 0;
 
-        z.gotas.forEach((g) => g.destroy());
-        z.gotas = [];
+        z.secarFrotado++;
+
+        const progreso = z.secarFrotado / z.secarFrotadoMax;
+
+        z.gotas.forEach((g) => {
+          g.opacity(0.8 * (1 - progreso));
+          g.scale({
+            x: 1 - progreso * 0.5,
+            y: 1 - progreso * 0.5,
+          })
+        })
+
+        if (z.secarFrotado >= z.secarFrotadoMax) {
+          z.gotas.forEach((g) => g.destroy());
+          z.gotas = [];
+          z.estado = 0;
+          z.secarFrotado = 0;
+        }
+
       }
     });
 
@@ -434,6 +498,10 @@ setInterval(() => {
       z.progresoBar = null;
       z.estado = 3;
       z.aguaTiempo = 0;
+
+      z.secarFrotado = 0;
+      z.secarFrotadoMax = 150;
+
       crearGotasZona(z);
     }
   });
