@@ -1,6 +1,10 @@
 let canvasMask;
 let ctxMask;
 
+const maxManchasSimultaneas = 9;
+let manchasActivas = 0;
+let manchasLimpiadas = 0;
+let juegoTerminado = false;
 
 // ======================
 // Crear stage
@@ -65,6 +69,50 @@ let pistolaAgua;
 let esponja;
 
 // ======================
+// Contador de manchas
+// ======================
+function finalizarJuego() {
+  juegoTerminado = true;
+
+  jabon.draggable(false);
+  esponja.draggable(false);
+  pistolaAgua.draggable(false);
+
+  const textFinal = new Konva.Text({
+    x: stage.width() / 2,
+    y: 600,
+    text: "¡El coche está demasiado sucio! 😢",
+    fontSize: 36,
+    fill: "red",
+    align: "center",
+  })
+
+  textFinal.offsetX(textFinal.width() / 2);
+  textFinal.offsetY(textFinal.height() / 2);
+
+  layerObjetos.add(textFinal);
+  layerObjetos.draw();
+}
+
+// ======================
+// Contador de manchas
+// ======================
+function contarManchasActivas() {
+  return zonas.filter((z) => z.estado !== 0).length;
+}
+
+// ======================
+// Comprobar si el juego termina
+// ======================
+function comprobarFinJuego() {
+  if (juegoTerminado) return;
+
+  if (manchasActivas >= maxManchasSimultaneas) {
+    finalizarJuego();
+  }
+}
+
+// ======================
 // Función actualizar etapa
 // ======================
 function actualizarEtapa() {
@@ -102,6 +150,9 @@ function crearMancha(zona) {
   layerZonas.add(mancha);
   mancha.moveToTop();
   layerZonas.batchDraw();
+  manchasActivas++;
+  actualizarHUD();
+  comprobarFinJuego();
 }
 
 function puntoSobreCoche(xStage, yStage) {
@@ -219,6 +270,17 @@ function volverPosicionIni(objeto, pos) {
 }
 
 // ======================
+// Funcion actualizar HUB
+// ======================
+function actualizarHUD() {
+  hud.text(
+    `🧼 Limpiadas: ${manchasLimpiadas}   |   🚨 Activas: ${manchasActivas} / ${maxManchasSimultaneas}`
+  );
+  layerObjetos.batchDraw();
+}
+
+
+// ======================
 // Area clicable completa
 // ======================
 function hitRectCompleto(ctx, shape) {
@@ -259,6 +321,36 @@ imgCoche.onload = () => {
 
   crearZonasCoche();
 };
+
+// ======================
+// Crear el Hub
+// ======================
+const hudGroup = new Konva.Group({
+  x: 10,
+  y: 10,
+});
+
+const hudBg = new Konva.Rect({
+  width: 325,
+  height: 40,
+  fill: "rgba(0,0,0,0.6)",
+  cornerRadius: 8,
+});
+
+const hud = new Konva.Text({
+  x: 10,
+  y: 8,
+  text: "",
+  fontSize: 18,
+  fill: "white",
+});
+
+hudGroup.add(hudBg);
+hudGroup.add(hud);
+layerObjetos.add(hudGroup);
+actualizarHUD()
+layerObjetos.draw();
+
 
 // ======================
 // Crear zonas invisibles
@@ -345,6 +437,7 @@ function procesarAccion(objeto) {
           z.mancha = null;
           z.estado = 2;
           crearEspumaZona(z);
+          actualizarHUD();
         }
       }
     });
@@ -379,6 +472,10 @@ function procesarAccion(objeto) {
           z.gotas = [];
           z.estado = 0;
           z.secarFrotado = 0;
+
+          manchasActivas--;
+          manchasLimpiadas++;
+          actualizarHUD();
         }
 
       }
@@ -452,16 +549,22 @@ imgEsponja.onload = () => {
 // Creacion de las manchas al pasar el tiempo
 // ======================
 setInterval(() => {
-  const zonasLimpias = zonas.filter((z) => z.estado === 0);
+  if (juegoTerminado) return;
 
+  comprobarFinJuego();
+
+  const zonasLimpias = zonas.filter((z) => z.estado === 0);
   if (zonasLimpias.length === 0) return;
 
-  const zonaRandom =
-    zonasLimpias[Math.floor(Math.random() * zonasLimpias.length)];
+  const zonaRandom = zonasLimpias[Math.floor(Math.random() * zonasLimpias.length)];
 
   crearMancha(zonaRandom);
 }, 3000);
 
+
+// ======================
+// Mecanica de limpieza con las pistola de agua
+// ======================
 setInterval(() => {
   if (!pistolaAgua) return;
 
