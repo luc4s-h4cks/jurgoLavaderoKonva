@@ -80,7 +80,7 @@ function finalizarJuego() {
 
   const textFinal = new Konva.Text({
     x: stage.width() / 2,
-    y: 600,
+    y: 200,
     text: "¡El coche está demasiado sucio! 😢",
     fontSize: 36,
     fill: "red",
@@ -321,6 +321,30 @@ imgCoche.onload = () => {
 
   crearZonasCoche();
 };
+// ======================
+// Crear fondo
+// ======================
+const fondo = new Konva.Rect({
+  x: 0,
+  y: 0,
+  width: stage.width(),
+  height: stage.height(),
+  fill: "#EAF6FF",
+});
+
+layerCoche.add(fondo);
+fondo.moveToBottom();
+
+const suelo = new Konva.Rect({
+  x: 0,
+  y: 400,
+  width: stage.width(),
+  height: 550,
+  fill: "#DADADA",
+});
+
+layerCoche.add(suelo);
+
 
 // ======================
 // Crear el Hub
